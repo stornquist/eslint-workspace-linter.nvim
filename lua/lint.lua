@@ -5,11 +5,13 @@ local M = {}
 ---@class PluginOptions
 ---@field auto_open? boolean
 ---@field list? ListOptions
+---@field srcDir? string
 
 ---@type PluginOptions
 local default_options = {
 	auto_open = true,
 	list = "quickfix",
+	srcDir = "src",
 }
 
 ---@param opts PluginOptions
@@ -28,12 +30,40 @@ M.setup = function(opts)
 			on_attach = function(client, bufnr)
 				local original = lspconfig["eslint"].manager.config.capabilities.on_attach
 				vim.api.nvim_buf_create_user_command(0, "Lint", function()
-					local workspace =
-						vim.lsp.get_active_clients({ bufnr = bufnr, name = "eslint" })[1].config.settings.workspaceFolder.uri
+					-- local workspace =
+					-- 	vim.lsp.get_active_clients({ bufnr = bufnr, name = "eslint" })[1].config.settings.workspaceFolder.uri
+					local workspace = ""
+					local eslintFiles = {
+						".eslintrc.js",
+						".eslintrc.cjs",
+						".eslintrc.yaml",
+						".eslintrc.yml",
+						".eslintrc.json",
+						".eslintrc",
+						"package.json",
+					}
+					for _, file in ipairs(eslintFiles) do
+						local res = vim.fn.findfile(file, ".;")
+						if #res > 0 then
+							if options.debug then
+								print("Found eslint config: " .. res)
+							end
+							workspace = vim.fn.getcwd() .. "/" .. res:gsub("/.eslintrc.*", "")
+							break
+						end
+					end
+
+					if not workspace then
+						print("No eslint config found")
+						return
+					end
+
 					vim.api.nvim_command(
 						":set errorformat=%f:%l:%c:%m | setlocal makeprg=npx\\ eslint\\ -f\\ unix\\ '"
 							.. workspace
-							.. "/src/**/*.{js,ts,jsx,tsx}'"
+							.. "/"
+							.. options.srcDir
+							.. "/**/*.{js,ts,jsx,tsx}'"
 					)
 					vim.api.nvim_command(":make")
 
