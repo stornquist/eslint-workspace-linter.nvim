@@ -16,19 +16,15 @@ local default_options = {
 
 ---@param opts PluginOptions
 M.setup = function(opts)
-	local status, lspconfig = pcall(require, "lspconfig")
-	if not status then
-		print("lspconfig not found")
-	end
-
-	if not lspconfig["eslint"] then
+	if not vim.lsp.config["eslint"] then
 		print("make sure eslint is installed and setup before loading eslint-workspace-lint")
 	else
-		local options = vim.tbl_deep_extend("force", default_options, opts or {})
+		local existing_options = vim.lsp.config["eslint"]
+		local options = vim.tbl_deep_extend("force", default_options, existing_options or {})
 
-		lspconfig["eslint"].setup({
+		vim.lsp.config("eslint", {
 			on_attach = function(client, bufnr)
-				local original = lspconfig["eslint"].manager.config.capabilities.on_attach
+				local original = vim.lsp.config["eslint"].on_attach
 				vim.api.nvim_buf_create_user_command(0, "Lint", function()
 					-- local workspace =
 					-- 	vim.lsp.get_active_clients({ bufnr = bufnr, name = "eslint" })[1].config.settings.workspaceFolder.uri
